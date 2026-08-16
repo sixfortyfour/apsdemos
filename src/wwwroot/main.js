@@ -4,13 +4,25 @@ initViewer(document.getElementById('preview')).then(viewer => {
     const urn = window.location.hash?.substring(1);
     setupModelSelection(viewer, urn);
     setupModelUpload(viewer);
+    setupLogout();
 });
+
+function setupLogout() {
+    document.getElementById('logout').onclick = async () => {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login.html';
+    };
+}
 
 async function setupModelSelection(viewer, selectedUrn) {
     const dropdown = document.getElementById('models');
     dropdown.innerHTML = '';
     try {
         const resp = await fetch('/api/models');
+        if (resp.status === 401) {
+            window.location.href = '/login.html';
+            return;
+        }
         if (!resp.ok) {
             throw new Error(await resp.text());
         }

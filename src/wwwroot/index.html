@@ -13,14 +13,16 @@
 
 <body>
     <div id="header">
-        <img class="logo" src="https://cdn.autodesk.io/logo/black/stacked.png" alt="Autodesk Platform Services">
+        <img class="logo" src="https://cdn.autodesk.io/logo/white/stacked.png" alt="Autodesk Platform Services">
         <span class="title">Simple Viewer</span>
         <select name="models" id="models"></select>
         <button id="upload" title="Upload New Model">Upload</button>
         <input style="display: none" type="file" id="input">
+        <button id="logout" title="Log Out">Log Out</button>
     </div>
     <div id="preview"></div>
     <div id="overlay"></div>
+    <footer>&copy; sixfortyfour 2026</footer>
     <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.js"></script>
     <script src="/main.js" type="module"></script>
 </body>

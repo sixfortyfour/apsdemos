@@ -1,8 +1,21 @@
+:root {
+    --bg: #eaeef4;
+    --dark: #262626;
+    --accent: #009add;
+    --border: #e0e0e0;
+    --white: #ffffff;
+    --text: #262626;
+    --font: "Century Gothic", "Avant Garde", Futura, sans-serif;
+}
+
 body, html {
     margin: 0;
     padding: 0;
     height: 100vh;
-    font-family: ArtifaktElement;
+    font-family: var(--font);
+    letter-spacing: 0.02em;
+    background: var(--bg);
+    color: var(--text);
 }
 
 #header, #preview, #overlay {
@@ -11,45 +24,86 @@ body, html {
 }
 
 #header {
-    height: 3em;
+    height: 3.5em;
+    box-sizing: border-box;
     display: flex;
     flex-flow: row nowrap;
     justify-content: space-between;
     align-items: center;
+    padding: 0 1em;
+    background: var(--dark);
+    color: var(--white);
 }
 
 #preview, #overlay {
-    top: 3em;
+    top: 3.5em;
+    bottom: 1.75em;
+}
+
+footer {
+    position: absolute;
     bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+    height: 1.75em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--dark);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75em;
 }
 
 #overlay {
     z-index: 1;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(38, 38, 38, 0.6);
     padding: 1em;
     display: none;
 }
 
 #overlay > .notification {
     margin: auto;
-    padding: 1em;
+    padding: 1em 1.5em;
     max-width: 50%;
-    background: white;
+    background: var(--white);
+    color: var(--text);
+    border-radius: 5px;
 }
 
 #header > * {
     height: 2em;
     margin: 0 0.5em;
     font-size: 1em;
-    font-family: ArtifaktElement;
+    font-family: var(--font);
 }
 
 #header .title {
     flex: 1 0 auto;
     height: auto;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
 #models {
     flex: 0 1 auto;
     min-width: 2em;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--white);
+    color: var(--text);
+}
+
+#header button {
+    border: none;
+    border-radius: 5px;
+    background: var(--accent);
+    color: var(--white);
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0 1em;
+    transition: background-color 300ms ease;
+}
+
+#header button:hover {
+    background-color: #007cb3;
 }
