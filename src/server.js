@@ -14,8 +14,9 @@ app.use(session({
 }));
 app.use(sessionRouter);
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'wwwroot', 'login.html')));
-app.get('/login.css', (req, res) => res.sendFile(path.join(__dirname, 'wwwroot', 'login.css')));
-app.get('/login.js', (req, res) => res.sendFile(path.join(__dirname, 'wwwroot', 'login.js')));
+// Built JS/CSS chunks are just UI code, not sensitive, and the login page needs
+// its own chunk before the user is authenticated, so serve /assets ahead of the auth gate.
+app.use('/assets', express.static(path.join(__dirname, 'wwwroot', 'assets')));
 app.use(requireAuth);
 app.use(express.static(path.join(__dirname, 'wwwroot')));
 app.use(require('./routes/auth.js'));

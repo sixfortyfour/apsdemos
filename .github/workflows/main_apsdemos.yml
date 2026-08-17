@@ -29,6 +29,9 @@ jobs:
           npm run build --if-present
           npm run test --if-present
 
+      - name: Remove build-only files not needed at runtime
+        run: rm -rf client .git
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
