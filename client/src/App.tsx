@@ -149,47 +149,50 @@ export default function App() {
   return (
     <div className="flex h-svh flex-col bg-background">
       <Toaster position="top-right" />
-      <header className="flex h-14 flex-none items-center gap-3 bg-secondary px-4 text-secondary-foreground">
-        <img
-          src="https://cdn.autodesk.io/logo/white/stacked.png"
-          alt="Autodesk Platform Services"
-          className="h-8"
-        />
-        <span className="font-semibold tracking-wide">Simple Viewer</span>
-        <div className="flex-1" />
-        <Select value={selectedUrn} onValueChange={handleModelChange} disabled={busy}>
-          <SelectTrigger className="min-w-40 bg-white text-foreground focus-visible:border-foreground focus-visible:ring-foreground/20">
-            <SelectValue placeholder="Select a model" />
-          </SelectTrigger>
-          <SelectContent>
-            {models.map((model) => (
-              <SelectItem
-                key={model.urn}
-                value={model.urn}
-                className="focus:bg-secondary focus:text-secondary-foreground"
-              >
-                {model.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          variant="secondary"
-          className="border border-white/20"
-          onClick={handleUploadClick}
-          disabled={busy}
-        >
-          Upload
-        </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-        <Button variant="secondary" className="border border-white/20" onClick={handleLogout}>
-          Log Out
-        </Button>
+      <header className="flex flex-none flex-col gap-2 bg-secondary px-4 py-2 text-secondary-foreground sm:h-14 sm:flex-row sm:items-center sm:gap-3 sm:py-0">
+        <div className="flex items-center gap-3">
+          <img
+            src="https://cdn.autodesk.io/logo/white/stacked.png"
+            alt="Autodesk Platform Services"
+            className="h-8 shrink-0"
+          />
+          <span className="font-semibold tracking-wide">Simple Viewer</span>
+        </div>
+        <div className="flex flex-1 flex-wrap items-center gap-2 sm:flex-nowrap sm:justify-end sm:gap-3">
+          <Select value={selectedUrn} onValueChange={handleModelChange} disabled={busy}>
+            <SelectTrigger className="min-w-40 flex-1 bg-white text-foreground focus-visible:border-foreground focus-visible:ring-foreground/20 sm:flex-none">
+              <SelectValue placeholder="Select a model" />
+            </SelectTrigger>
+            <SelectContent>
+              {models.map((model) => (
+                <SelectItem
+                  key={model.urn}
+                  value={model.urn}
+                  className="focus:bg-secondary focus:text-secondary-foreground"
+                >
+                  {model.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="secondary"
+            className="border border-white/20"
+            onClick={handleUploadClick}
+            disabled={busy}
+          >
+            Upload
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button variant="secondary" className="border border-white/20" onClick={handleLogout}>
+            Log Out
+          </Button>
+        </div>
       </header>
 
       <div className="relative flex-1">
