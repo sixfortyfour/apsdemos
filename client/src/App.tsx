@@ -158,18 +158,27 @@ export default function App() {
         <span className="font-semibold tracking-wide">Simple Viewer</span>
         <div className="flex-1" />
         <Select value={selectedUrn} onValueChange={handleModelChange} disabled={busy}>
-          <SelectTrigger className="min-w-40 bg-white text-foreground">
+          <SelectTrigger className="min-w-40 bg-white text-foreground focus-visible:border-foreground focus-visible:ring-foreground/20">
             <SelectValue placeholder="Select a model" />
           </SelectTrigger>
           <SelectContent>
             {models.map((model) => (
-              <SelectItem key={model.urn} value={model.urn}>
+              <SelectItem
+                key={model.urn}
+                value={model.urn}
+                className="focus:bg-secondary focus:text-secondary-foreground"
+              >
                 {model.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={handleUploadClick} disabled={busy}>
+        <Button
+          variant="secondary"
+          className="border border-white/20"
+          onClick={handleUploadClick}
+          disabled={busy}
+        >
           Upload
         </Button>
         <input
@@ -194,7 +203,7 @@ export default function App() {
         )}
       </div>
 
-      <footer className="flex h-7 flex-none items-center justify-center bg-secondary text-xs text-secondary-foreground/70">
+      <footer className="flex h-7 flex-none items-center justify-center border-t border-border bg-muted text-xs text-muted-foreground">
         &copy; sixfortyfour 2026
       </footer>
     </div>

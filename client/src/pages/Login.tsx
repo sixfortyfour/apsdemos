@@ -62,11 +62,12 @@ export default function Login() {
                   autoComplete="current-password"
                   autoFocus
                   required
+                  className="focus-visible:border-foreground focus-visible:ring-foreground/20"
                   value={passphrase}
                   onChange={(ev) => setPassphrase(ev.target.value)}
                 />
               </div>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" variant="secondary" disabled={submitting}>
                 {submitting ? 'Logging in…' : 'Log In'}
               </Button>
               <p className="min-h-4 text-center text-sm text-destructive">{error}</p>
