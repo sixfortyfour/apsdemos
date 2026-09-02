@@ -1,11 +1,14 @@
 {
   "name": "apsdemos",
   "version": "1.0.0",
-  "main": "src/server.js",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "tsx src/server.js",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.js",
     "typecheck": "tsc --noEmit",
-    "build": "npm install --prefix client && npm run build --prefix client",
+    "build:client": "npm install --prefix client && npm run build --prefix client",
+    "build:server": "tsc -p tsconfig.json",
+    "build": "npm run build:client && npm run build:server && node -e \"require('fs').cpSync('src/wwwroot','dist/wwwroot',{recursive:true})\"",
     "dev:client": "npm run dev --prefix client"
   },
   "keywords": [],
