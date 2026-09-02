@@ -1,5 +1,5 @@
 const express = require('express');
-const { getViewerToken } = require('../services/aps.js');
+const { getViewerToken } = require('../services/aps');
 
 let router = express.Router();
 

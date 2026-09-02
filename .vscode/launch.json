@@ -12,7 +12,8 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}\\src\\server.js",
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "runtimeArgs": ["-r", "tsx/cjs"]
         }
     ]
 }

@@ -1,7 +1,7 @@
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
-const { PORT, SESSION_SECRET } = require('./config.js');
+const { PORT, SESSION_SECRET } = require('./config');
 const { router: sessionRouter, requireAuth } = require('./routes/session.js');
 
 let app = express();

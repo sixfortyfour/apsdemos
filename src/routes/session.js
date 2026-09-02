@@ -1,5 +1,5 @@
 const express = require('express');
-const { LOGIN_PASSPHRASE } = require('../config.js');
+const { LOGIN_PASSPHRASE } = require('../config');
 
 let router = express.Router();
 

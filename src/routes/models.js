@@ -1,6 +1,6 @@
 const express = require('express');
 const formidable = require('express-formidable');
-const { listObjects, uploadObject, translateObject, getManifest, urnify } = require('../services/aps.js');
+const { listObjects, uploadObject, translateObject, getManifest, urnify } = require('../services/aps');
 
 let router = express.Router();
 
