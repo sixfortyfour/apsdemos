@@ -60,4 +60,28 @@ export class BaseExtension extends Autodesk.Viewing.Extension {
             }, reject);
         });
     }
+
+    createToolbarButton(buttonId: string, buttonIconUrl: string, buttonTooltip: string) {
+        let group = this.viewer.toolbar.getControl('dashboard-toolbar-group');
+        if (!group) {
+            group = new Autodesk.Viewing.UI.ControlGroup('dashboard-toolbar-group');
+            this.viewer.toolbar.addControl(group);
+        }
+        const button = new Autodesk.Viewing.UI.Button(buttonId);
+        button.setToolTip(buttonTooltip);
+        group.addControl(button);
+        const icon = button.container.querySelector('.adsk-button-icon');
+        if (icon) {
+            icon.style.backgroundImage = `url(${buttonIconUrl})`; 
+            icon.style.backgroundSize = `24px`; 
+            icon.style.backgroundRepeat = `no-repeat`; 
+            icon.style.backgroundPosition = `center`; 
+        }
+        return button;
+    }
+
+    removeToolbarButton(button: any) {
+        const group = this.viewer.toolbar.getControl('dashboard-toolbar-group');
+        group.removeControl(button);
+    }
 }
