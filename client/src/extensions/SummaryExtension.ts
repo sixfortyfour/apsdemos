@@ -1,20 +1,34 @@
 import { BaseExtension } from './BaseExtension.js';
 
 class SummaryExtension extends BaseExtension {
+    _button: any;
+
     constructor(viewer: any, options: any) {
         super(viewer, options);
+        this._button = null;
     }
 
-    load() {
+    load(): boolean {
         super.load();
         console.log('SummaryExtension loaded.');
         return true;
     }
 
-    unload() {
+    unload(): boolean {
         super.unload();
+        if (this._button) {
+            this.removeToolbarButton(this._button);
+            this._button = null;
+        }
         console.log('SummaryExtension unloaded.');
         return true;
+    }
+
+    onToolbarCreated() {
+        this._button = this.createToolbarButton('summary-button', 'https://img.icons8.com/small/32/brief.png', 'Show Model Summary');
+        this._button.onClick = () => {
+            // TODO
+        };
     }
 
     onModelLoaded(model: any) {
