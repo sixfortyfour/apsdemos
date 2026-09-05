@@ -13,7 +13,27 @@
             ],
             "program": "${workspaceFolder}\\src\\server.js",
             "cwd": "${workspaceFolder}",
+            "runtimeArgs": ["-r", "tsx/cjs"],
+            "preLaunchTask": "build:client"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program (dev, no build)",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}\\src\\server.js",
+            "cwd": "${workspaceFolder}",
             "runtimeArgs": ["-r", "tsx/cjs"]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Server + Client (dev)",
+            "configurations": ["Launch Program (dev, no build)"],
+            "preLaunchTask": "dev:client (watch)",
+            "stopAll": true
         }
     ]
 }

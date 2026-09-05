@@ -151,6 +151,7 @@ Thumbs.db
 !.vscode/launch.json
 !.vscode/settings.json
 !.vscode/extensions.json
+!.vscode/tasks.json
 
 # Build output
 build/
