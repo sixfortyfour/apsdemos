@@ -9,7 +9,9 @@
     "build:client": "npm install --prefix client && npm run build --prefix client",
     "build:server": "tsc -p tsconfig.json",
     "build": "npm run build:client && npm run build:server && node -e \"require('fs').cpSync('src/wwwroot','dist/wwwroot',{recursive:true})\"",
-    "dev:client": "npm run dev --prefix client"
+    "dev:client": "npm run dev --prefix client",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
@@ -26,8 +28,10 @@
     "express-session": "^1.19.0"
   },
   "devDependencies": {
+    "@rolldown/binding-win32-x64-msvc": "^1.2.8",
     "@types/node": "^26.4.1",
     "tsx": "^4.23.13",
-    "typescript": "~5.7.2"
+    "typescript": "~5.7.2",
+    "vitest": "^4.1.11"
   }
 }

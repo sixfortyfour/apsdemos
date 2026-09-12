@@ -1,25 +1,13 @@
 import { AuthenticationClient, Scopes } from '@aps_sdk/authentication';
 import { OssClient, Region, PolicyKey, type ObjectDetails } from '@aps_sdk/oss';
 import { ModelDerivativeClient, View, OutputType } from '@aps_sdk/model-derivative';
-import { Data, Duration, Effect, Option, Schedule, Stream } from 'effect';
+import { Duration, Effect, Option, Schedule, Stream } from 'effect';
 import { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_BUCKET } from '../config';
+import { ApsRequestError, statusOf, isTransientError, urnify } from './apsHelpers';
 
 const authenticationClient = new AuthenticationClient();
 const ossClient = new OssClient();
 const modelDerivativeClient = new ModelDerivativeClient();
-
-class ApsRequestError extends Data.TaggedError('ApsRequestError')<{
-  readonly operation: string;
-  readonly status: number | null;
-  readonly cause: unknown;
-}> {}
-
-// SDK errors expose `httpStatusCode()` (OssApiError, ModelDerivativeApiError, AuthenticationApiError);
-// anything else (network failure, DNS, etc.) surfaces as a null status.
-function statusOf(err: unknown): number | null {
-  const fn = (err as { httpStatusCode?: () => number | null })?.httpStatusCode;
-  return typeof fn === 'function' ? fn.call(err) : null;
-}
 
 function callAps<A>(operation: string, promise: () => Promise<A>): Effect.Effect<A, ApsRequestError> {
   return Effect.tryPromise({
@@ -28,13 +16,11 @@ function callAps<A>(operation: string, promise: () => Promise<A>): Effect.Effect
   });
 }
 
-// Retry server-side/network failures (status >= 500 or unknown); a 4xx means the request itself
-// is wrong and retrying it would just fail again the same way.
 const retryTransient = <A>(effect: Effect.Effect<A, ApsRequestError>) =>
   effect.pipe(
     Effect.retry({
       schedule: Schedule.exponential(Duration.millis(300)).pipe(Schedule.intersect(Schedule.recurs(3))),
-      while: (err) => err.status === null || err.status >= 500,
+      while: isTransientError,
     })
   );
 
@@ -145,4 +131,4 @@ export const uploadObject = (objectName: string, filePath: string) =>
 export const translateObject = (urn: string, rootFilename: string | undefined) =>
   Effect.runPromise(translateObjectEffect(urn, rootFilename));
 export const getManifest = (urn: string) => Effect.runPromise(getManifestEffect(urn));
-export const urnify = (id: string) => Buffer.from(id).toString('base64').replace(/=/g, '');
+export { urnify };
