@@ -28,7 +28,6 @@
     "express-session": "^1.19.0"
   },
   "devDependencies": {
-    "@rolldown/binding-win32-x64-msvc": "^1.2.8",
     "@types/node": "^26.4.1",
     "tsx": "^4.23.13",
     "typescript": "~5.7.2",
