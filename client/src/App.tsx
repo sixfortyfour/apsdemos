@@ -2,13 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { initViewer, loadModel } from '@/lib/viewer';
 
 interface Model {
@@ -26,6 +30,7 @@ export default function App() {
   const [selectedUrn, setSelectedUrn] = useState<string>('');
   const [notification, setNotification] = useState<string>('');
   const [busy, setBusy] = useState(false);
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!previewRef.current) return;
@@ -54,6 +59,7 @@ export default function App() {
         throw new Error(await resp.text());
       }
       const list: Model[] = await resp.json();
+      list.sort((a, b) => a.name.localeCompare(b.name));
       setModels(list);
       const initial = list.some((m) => m.urn === selected) ? selected : '';
       setSelectedUrn(initial);
@@ -159,22 +165,50 @@ export default function App() {
           <span className="font-semibold tracking-wide">Simple Viewer</span>
         </div>
         <div className="flex flex-1 flex-wrap items-center gap-2 sm:flex-nowrap sm:justify-end sm:gap-3">
-          <Select value={selectedUrn} onValueChange={handleModelChange} disabled={busy}>
-            <SelectTrigger className="min-w-40 flex-1 bg-white text-foreground focus-visible:border-foreground focus-visible:ring-foreground/20 sm:flex-none">
-              <SelectValue placeholder="Select a model" />
-            </SelectTrigger>
-            <SelectContent>
-              {models.map((model) => (
-                <SelectItem
-                  key={model.urn}
-                  value={model.urn}
-                  className="focus:bg-secondary focus:text-secondary-foreground"
-                >
-                  {model.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={modelPickerOpen} onOpenChange={setModelPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={modelPickerOpen}
+                disabled={busy}
+                className="min-w-40 flex-1 justify-between bg-white font-normal text-foreground hover:bg-white hover:text-foreground focus-visible:border-foreground focus-visible:ring-foreground/20 sm:flex-none"
+              >
+                <span className="truncate">
+                  {models.find((m) => m.urn === selectedUrn)?.name ?? 'Select a model'}
+                </span>
+                <ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="min-w-40 p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search models..." />
+                <CommandList>
+                  <CommandEmpty>No models found.</CommandEmpty>
+                  <CommandGroup>
+                    {models.map((model) => (
+                      <CommandItem
+                        key={model.urn}
+                        value={model.name}
+                        onSelect={() => {
+                          handleModelChange(model.urn);
+                          setModelPickerOpen(false);
+                        }}
+                      >
+                        <CheckIcon
+                          className={cn(
+                            'size-4',
+                            selectedUrn === model.urn ? 'opacity-100' : 'opacity-0'
+                          )}
+                        />
+                        {model.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <Button
             variant="secondary"
             className="border border-white/20"
