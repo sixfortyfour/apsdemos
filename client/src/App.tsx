@@ -22,14 +22,12 @@ interface Model {
 
 export default function App() {
   const previewRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const viewerRef = useRef<any>(null);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const [models, setModels] = useState<Model[]>([]);
   const [selectedUrn, setSelectedUrn] = useState<string>('');
   const [notification, setNotification] = useState<string>('');
-  const [busy, setBusy] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
 
   useEffect(() => {
@@ -115,38 +113,6 @@ export default function App() {
     }
   }
 
-  async function handleUploadClick() {
-    fileInputRef.current?.click();
-  }
-
-  async function handleFileChange() {
-    const file = fileInputRef.current?.files?.[0];
-    if (!file) return;
-    const data = new FormData();
-    data.append('model-file', file);
-    if (file.name.endsWith('.zip')) {
-      const entrypoint = window.prompt('Please enter the filename of the main design inside the archive.');
-      data.append('model-zip-entrypoint', entrypoint || '');
-    }
-    setBusy(true);
-    setNotification(`Uploading model ${file.name}. Do not reload the page.`);
-    try {
-      const resp = await fetch('/api/models', { method: 'POST', body: data });
-      if (!resp.ok) {
-        throw new Error(await resp.text());
-      }
-      const model: Model = await resp.json();
-      await fetchModels(viewerRef.current, model.urn);
-    } catch (err) {
-      toast.error(`Could not upload model ${file.name}. See the console for more details.`);
-      console.error(err);
-    } finally {
-      setNotification('');
-      setBusy(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  }
-
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/login.html';
@@ -171,7 +137,6 @@ export default function App() {
                 variant="outline"
                 role="combobox"
                 aria-expanded={modelPickerOpen}
-                disabled={busy}
                 className="min-w-40 flex-1 justify-between bg-white font-normal text-foreground hover:bg-white hover:text-foreground focus-visible:border-foreground focus-visible:ring-foreground/20 sm:flex-none"
               >
                 <span className="truncate">
@@ -209,20 +174,9 @@ export default function App() {
               </Command>
             </PopoverContent>
           </Popover>
-          <Button
-            variant="secondary"
-            className="border border-white/20"
-            onClick={handleUploadClick}
-            disabled={busy}
-          >
-            Upload
+          <Button variant="secondary" className="border border-white/20" asChild>
+            <a href="/manage.html">Manage</a>
           </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFileChange}
-          />
           <Button variant="secondary" className="border border-white/20" onClick={handleLogout}>
             Log Out
           </Button>

@@ -90,6 +90,15 @@ function uploadObjectEffect(objectName: string, filePath: string) {
   );
 }
 
+function deleteObjectEffect(objectName: string) {
+  return cachedTokenEffect.pipe(
+    Effect.flatMap((accessToken) =>
+      callAps('deleteObject', () => ossClient.deleteObject(APS_BUCKET, objectName, { accessToken }))
+    ),
+    retryTransient
+  );
+}
+
 function translateObjectEffect(urn: string, rootFilename: string | undefined) {
   return cachedTokenEffect.pipe(
     Effect.flatMap((accessToken) =>
@@ -128,6 +137,7 @@ export const ensureBucketExists = (bucketKey: string) => Effect.runPromise(ensur
 export const listObjects = () => Effect.runPromise(listObjectsEffect());
 export const uploadObject = (objectName: string, filePath: string) =>
   Effect.runPromise(uploadObjectEffect(objectName, filePath));
+export const deleteObject = (objectName: string) => Effect.runPromise(deleteObjectEffect(objectName));
 export const translateObject = (urn: string, rootFilename: string | undefined) =>
   Effect.runPromise(translateObjectEffect(urn, rootFilename));
 export const getManifest = (urn: string) => Effect.runPromise(getManifestEffect(urn));

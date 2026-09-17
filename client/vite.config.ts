@@ -21,6 +21,7 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'index.html'),
         login: path.resolve(__dirname, 'login.html'),
+        manage: path.resolve(__dirname, 'manage.html'),
       },
     },
   },

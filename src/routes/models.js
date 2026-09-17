@@ -1,6 +1,6 @@
 const express = require('express');
 const formidable = require('express-formidable');
-const { listObjects, uploadObject, translateObject, getManifest, urnify } = require('../services/aps');
+const { listObjects, uploadObject, deleteObject, translateObject, getManifest, urnify } = require('../services/aps');
 const { summarizeManifest } = require('../services/manifestSummary');
 
 let router = express.Router();
@@ -10,7 +10,9 @@ router.get('/api/models', async function (req, res, next) {
         const objects = await listObjects();
         res.json(objects.map(o => ({
             name: o.objectKey,
-            urn: urnify(o.objectId)
+            urn: urnify(o.objectId),
+            size: o.size,
+            contentType: o.contentType
         })));
     } catch (err) {
         next(err);
@@ -39,6 +41,15 @@ router.post('/api/models', formidable({ maxFileSize: Infinity }), async function
             name: obj.objectKey,
             urn: urnify(obj.objectId)
         });
+    } catch (err) {
+        next(err);
+    }
+});
+
+router.delete('/api/models/:objectKey', async function (req, res, next) {
+    try {
+        await deleteObject(req.params.objectKey);
+        res.status(204).end();
     } catch (err) {
         next(err);
     }
