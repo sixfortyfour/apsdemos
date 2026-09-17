@@ -3,6 +3,16 @@ import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface DrawingFile {
   urn: string;
@@ -31,6 +41,7 @@ export default function Manage() {
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
   const [deletingUrn, setDeletingUrn] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<DrawingFile | null>(null);
 
   useEffect(() => {
     fetchFiles();
@@ -85,7 +96,6 @@ export default function Manage() {
   }
 
   async function handleDelete(file: DrawingFile) {
-    if (!window.confirm(`Delete "${file.name}"? This cannot be undone.`)) return;
     setDeletingUrn(file.urn);
     try {
       const resp = await fetch(`/api/models/${encodeURIComponent(file.name)}`, { method: 'DELETE' });
@@ -187,7 +197,7 @@ export default function Manage() {
                         variant="destructive"
                         size="sm"
                         disabled={deletingUrn === file.urn}
-                        onClick={() => handleDelete(file)}
+                        onClick={() => setPendingDelete(file)}
                       >
                         {deletingUrn === file.urn ? 'Deleting…' : 'Delete'}
                       </Button>
@@ -203,6 +213,26 @@ export default function Manage() {
       <footer className="flex h-7 flex-none items-center justify-center border-t border-border bg-muted text-xs text-muted-foreground">
         &copy; sixfortyfour 2026
       </footer>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete drawing?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete "{pendingDelete?.name}"? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => pendingDelete && handleDelete(pendingDelete)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
