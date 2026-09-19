@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,23 @@ interface DrawingFile {
   name: string;
   size?: number;
   contentType?: string;
+}
+
+interface UploadStatus {
+  status: 'n/a' | 'inprogress' | 'failed';
+  progress?: string;
+  messages?: unknown[];
+}
+
+function describeUploadStatus(status: UploadStatus): string {
+  switch (status.status) {
+    case 'n/a':
+      return 'Not yet translated.';
+    case 'inprogress':
+      return `Translating (${status.progress})…`;
+    case 'failed':
+      return 'Translation failed.';
+  }
 }
 
 function formatBytes(bytes?: number): string {
@@ -42,10 +60,47 @@ export default function Manage() {
   const [busy, setBusy] = useState(false);
   const [deletingUrn, setDeletingUrn] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<DrawingFile | null>(null);
+  const [uploadStatuses, setUploadStatuses] = useState<Record<string, UploadStatus>>({});
+  const pollTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     fetchFiles();
+    const timeouts = pollTimeoutsRef.current;
+    return () => {
+      for (const timeout of Object.values(timeouts)) {
+        clearTimeout(timeout);
+      }
+    };
   }, []);
+
+  async function pollUploadStatus(urn: string) {
+    try {
+      const resp = await fetch(`/api/models/${urn}/status`);
+      if (!resp.ok) {
+        throw new Error(await resp.text());
+      }
+      const status = await resp.json();
+      delete pollTimeoutsRef.current[urn];
+      if (status.status === 'inprogress') {
+        setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'inprogress', progress: status.progress } }));
+        pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 5000);
+      } else if (status.status === 'failed') {
+        setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'failed', messages: status.messages } }));
+      } else if (status.status === 'n/a') {
+        setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'n/a' } }));
+      } else {
+        // Translation finished successfully - no more need to track its status.
+        setUploadStatuses((prev) => {
+          const next = { ...prev };
+          delete next[urn];
+          return next;
+        });
+      }
+    } catch (err) {
+      toast.error('Could not check translation status. See the console for more details.');
+      console.error(err);
+    }
+  }
 
   async function fetchFiles() {
     try {
@@ -85,7 +140,9 @@ export default function Manage() {
       if (!resp.ok) {
         throw new Error(await resp.text());
       }
+      const model = await resp.json();
       await fetchFiles();
+      pollUploadStatus(model.urn);
     } catch (err) {
       toast.error(`Could not upload ${file.name}. See the console for more details.`);
       console.error(err);
@@ -189,6 +246,23 @@ export default function Manage() {
                       <a href={`/#${file.urn}`} className="text-primary hover:underline">
                         {file.name}
                       </a>
+                      {uploadStatuses[file.urn] && (
+                        <div
+                          className={cn(
+                            'mt-1 text-xs',
+                            uploadStatuses[file.urn].status === 'failed'
+                              ? 'text-destructive'
+                              : 'text-muted-foreground'
+                          )}
+                          title={
+                            uploadStatuses[file.urn].messages
+                              ? JSON.stringify(uploadStatuses[file.urn].messages)
+                              : undefined
+                          }
+                        >
+                          {describeUploadStatus(uploadStatuses[file.urn])}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-2 text-muted-foreground">{formatBytes(file.size)}</td>
                     <td className="px-4 py-2 text-muted-foreground">{file.contentType ?? '—'}</td>
