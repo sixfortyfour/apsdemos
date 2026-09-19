@@ -87,7 +87,10 @@ export default function Manage() {
       } else if (status.status === 'failed') {
         setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'failed', messages: status.messages } }));
       } else if (status.status === 'n/a') {
+        // The manifest may not exist yet if the translation job was only just
+        // started - keep polling rather than treating this as a dead end.
         setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'n/a' } }));
+        pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
       } else {
         // Translation finished successfully - no more need to track its status.
         setUploadStatuses((prev) => {
