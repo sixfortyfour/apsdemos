@@ -1,7 +1,10 @@
 // The root manifest's `progress` only updates in coarse steps (or lags behind
 // entirely while sitting at "0% complete"). Each derivative/child carries its
-// own `progress` too, and updates more granularly, so report whichever one is
-// furthest along instead of just the root's.
+// own `progress` too, and updates more granularly, so prefer it over a stale
+// root value. A translation can request multiple views (e.g. 2D and 3D) that
+// finish at different times, so when there's more than one, report the
+// *slowest* one rather than the fastest - otherwise a single finished view
+// would make the whole job look "complete" while a sibling is still running.
 function parseProgressPercent(progress) {
     if (!progress) return null;
     if (progress === 'complete') return 100;
@@ -14,14 +17,12 @@ function summarizeManifest(manifest) {
         return { status: 'n/a' };
     }
     let messages = [];
-    let progress = manifest.progress;
-    let progressPercent = parseProgressPercent(manifest.progress);
+    let slowest = null;
 
     function considerProgress(candidate) {
         const percent = parseProgressPercent(candidate);
-        if (percent !== null && (progressPercent === null || percent > progressPercent)) {
-            progressPercent = percent;
-            progress = candidate;
+        if (percent !== null && (slowest === null || percent < slowest.percent)) {
+            slowest = { percent, progress: candidate };
         }
     }
 
@@ -37,6 +38,12 @@ function summarizeManifest(manifest) {
             }
         }
     }
+
+    const rootPercent = parseProgressPercent(manifest.progress);
+    const progress = slowest !== null && (rootPercent === null || slowest.percent > rootPercent)
+        ? slowest.progress
+        : manifest.progress;
+
     return { status: manifest.status, progress, messages };
 }
 

@@ -57,7 +57,20 @@ describe('summarizeManifest', () => {
       progress: '0% complete',
       derivatives: [{ progress: '45% complete', children: [{ progress: '60% complete' }] }],
     };
-    expect(summarizeManifest(manifest).progress).toBe('60% complete');
+    expect(summarizeManifest(manifest).progress).toBe('45% complete');
+  });
+
+  it('reports the slowest child progress rather than the fastest, so one finished view cannot claim the job is complete', () => {
+    const manifest = {
+      status: 'inprogress',
+      progress: '0% complete',
+      derivatives: [
+        {
+          children: [{ progress: 'complete' }, { progress: '30% complete' }],
+        },
+      ],
+    };
+    expect(summarizeManifest(manifest).progress).toBe('30% complete');
   });
 
   it('reports "complete" derivative progress even while the root is still stuck below 100%', () => {
