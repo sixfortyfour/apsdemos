@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { withMonotonicProgress, type ProgressReading } from '@/lib/translationProgress';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +65,7 @@ export default function Manage() {
   const [pendingDelete, setPendingDelete] = useState<DrawingFile | null>(null);
   const [uploadStatuses, setUploadStatuses] = useState<Record<string, UploadStatus>>({});
   const pollTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const bestProgressRef = useRef<Record<string, ProgressReading>>({});
 
   useEffect(() => {
     fetchFiles();
@@ -84,7 +86,12 @@ export default function Manage() {
       const status = await resp.json();
       delete pollTimeoutsRef.current[urn];
       if (status.status === 'inprogress') {
-        setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'inprogress', progress: status.progress } }));
+        const best = withMonotonicProgress(bestProgressRef.current[urn], status.progress);
+        if (best) bestProgressRef.current[urn] = best;
+        setUploadStatuses((prev) => ({
+          ...prev,
+          [urn]: { status: 'inprogress', progress: best?.progress ?? status.progress },
+        }));
         pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
       } else if (status.status === 'pending') {
         // The job has been accepted but hasn't started translating yet -
@@ -92,6 +99,7 @@ export default function Manage() {
         setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'pending' } }));
         pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
       } else if (status.status === 'failed' || status.status === 'timeout') {
+        delete bestProgressRef.current[urn];
         setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'failed', messages: status.messages } }));
       } else if (status.status === 'n/a') {
         // The manifest may not exist yet if the translation job was only just
@@ -100,6 +108,7 @@ export default function Manage() {
         pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
       } else {
         // status === 'success' - translation finished, no more need to track it.
+        delete bestProgressRef.current[urn];
         setUploadStatuses((prev) => {
           const next = { ...prev };
           delete next[urn];

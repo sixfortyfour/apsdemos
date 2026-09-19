@@ -14,6 +14,7 @@ import {
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { initViewer, loadModel } from '@/lib/viewer';
+import { withMonotonicProgress, type ProgressReading } from '@/lib/translationProgress';
 
 interface Model {
   urn: string;
@@ -24,6 +25,7 @@ export default function App() {
   const previewRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const bestProgressRef = useRef<Record<string, ProgressReading>>({});
 
   const [models, setModels] = useState<Model[]>([]);
   const [selectedUrn, setSelectedUrn] = useState<string>('');
@@ -97,22 +99,28 @@ export default function App() {
           setNotification('Model translation is starting...');
           pollTimeoutRef.current = setTimeout(() => onModelSelected(viewer, urn), 2000);
           break;
-        case 'inprogress':
+        case 'inprogress': {
+          const best = withMonotonicProgress(bestProgressRef.current[urn], status.progress);
+          if (best) bestProgressRef.current[urn] = best;
+          const progress = best?.progress ?? status.progress;
           setNotification(
-            status.progress === 'complete'
+            progress === 'complete'
               ? 'Model translation is finishing up...'
-              : `Model is being translated (${status.progress})...`
+              : `Model is being translated (${progress})...`
           );
           pollTimeoutRef.current = setTimeout(() => onModelSelected(viewer, urn), 2000);
           break;
+        }
         case 'failed':
         case 'timeout':
+          delete bestProgressRef.current[urn];
           setNotification(
             `Translation failed. ${status.messages.map((msg: unknown) => JSON.stringify(msg)).join(' ')}`
           );
           break;
         default:
           // status === 'success' - the model is ready to load.
+          delete bestProgressRef.current[urn];
           setNotification('');
           loadModel(viewer, urn);
           break;
