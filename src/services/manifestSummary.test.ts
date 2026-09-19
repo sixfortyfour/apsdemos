@@ -50,4 +50,40 @@ describe('summarizeManifest', () => {
     };
     expect(summarizeManifest(manifest).messages).toEqual([]);
   });
+
+  it('prefers a more advanced derivative progress over a lagging root progress', () => {
+    const manifest = {
+      status: 'inprogress',
+      progress: '0% complete',
+      derivatives: [{ progress: '45% complete', children: [{ progress: '60% complete' }] }],
+    };
+    expect(summarizeManifest(manifest).progress).toBe('60% complete');
+  });
+
+  it('reports "complete" derivative progress even while the root is still stuck below 100%', () => {
+    const manifest = {
+      status: 'inprogress',
+      progress: '99% complete',
+      derivatives: [{ status: 'success', progress: 'complete' }],
+    };
+    expect(summarizeManifest(manifest).progress).toBe('complete');
+  });
+
+  it('keeps the root progress when no derivative/child is further along', () => {
+    const manifest = {
+      status: 'inprogress',
+      progress: '50% complete',
+      derivatives: [{ progress: '10% complete' }],
+    };
+    expect(summarizeManifest(manifest).progress).toBe('50% complete');
+  });
+
+  it('falls back to the root progress when derivatives report no progress at all', () => {
+    const manifest = {
+      status: 'inprogress',
+      progress: '20% complete',
+      derivatives: [{ children: [{}] }],
+    };
+    expect(summarizeManifest(manifest).progress).toBe('20% complete');
+  });
 });

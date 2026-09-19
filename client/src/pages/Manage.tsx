@@ -83,7 +83,7 @@ export default function Manage() {
       delete pollTimeoutsRef.current[urn];
       if (status.status === 'inprogress') {
         setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'inprogress', progress: status.progress } }));
-        pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 5000);
+        pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
       } else if (status.status === 'failed') {
         setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'failed', messages: status.messages } }));
       } else if (status.status === 'n/a') {

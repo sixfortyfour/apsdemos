@@ -95,7 +95,7 @@ export default function App() {
           break;
         case 'inprogress':
           setNotification(`Model is being translated (${status.progress})...`);
-          pollTimeoutRef.current = setTimeout(() => onModelSelected(viewer, urn), 5000);
+          pollTimeoutRef.current = setTimeout(() => onModelSelected(viewer, urn), 2000);
           break;
         case 'failed':
           setNotification(
