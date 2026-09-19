@@ -77,7 +77,7 @@ export default function Manage() {
 
   async function pollUploadStatus(urn: string) {
     try {
-      const resp = await fetch(`/api/models/${urn}/status`);
+      const resp = await fetch(`/api/models/${urn}/status`, { cache: 'no-store' });
       if (!resp.ok) {
         throw new Error(await resp.text());
       }

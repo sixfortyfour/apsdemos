@@ -22,6 +22,9 @@ router.get('/api/models', async function (req, res, next) {
 router.get('/api/models/:urn/status', async function (req, res, next) {
     try {
         const manifest = await getManifest(req.params.urn);
+        // This is polled every couple of seconds while translation is running - never let the
+        // browser (or a proxy) serve a cached/304 response instead of the current status.
+        res.set('Cache-Control', 'no-store');
         res.json(summarizeManifest(manifest));
     } catch (err) {
         next(err);

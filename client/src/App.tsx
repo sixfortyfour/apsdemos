@@ -84,7 +84,7 @@ export default function App() {
     }
     window.location.hash = urn;
     try {
-      const resp = await fetch(`/api/models/${urn}/status`);
+      const resp = await fetch(`/api/models/${urn}/status`, { cache: 'no-store' });
       if (!resp.ok) {
         throw new Error(await resp.text());
       }
