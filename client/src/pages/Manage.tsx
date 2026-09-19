@@ -35,7 +35,7 @@ function describeUploadStatus(status: UploadStatus): string {
     case 'pending':
       return 'Preparing to translate…';
     case 'inprogress':
-      return `Translating (${status.progress})…`;
+      return status.progress === 'complete' ? 'Finishing up…' : `Translating (${status.progress})…`;
     case 'failed':
       return 'Translation failed.';
   }
