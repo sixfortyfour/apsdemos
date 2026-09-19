@@ -23,7 +23,7 @@ interface DrawingFile {
 }
 
 interface UploadStatus {
-  status: 'n/a' | 'inprogress' | 'failed';
+  status: 'n/a' | 'pending' | 'inprogress' | 'failed';
   progress?: string;
   messages?: unknown[];
 }
@@ -32,6 +32,8 @@ function describeUploadStatus(status: UploadStatus): string {
   switch (status.status) {
     case 'n/a':
       return 'Not yet translated.';
+    case 'pending':
+      return 'Preparing to translate…';
     case 'inprogress':
       return `Translating (${status.progress})…`;
     case 'failed':
@@ -84,7 +86,12 @@ export default function Manage() {
       if (status.status === 'inprogress') {
         setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'inprogress', progress: status.progress } }));
         pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
-      } else if (status.status === 'failed') {
+      } else if (status.status === 'pending') {
+        // The job has been accepted but hasn't started translating yet -
+        // keep polling rather than treating this as a dead end.
+        setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'pending' } }));
+        pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
+      } else if (status.status === 'failed' || status.status === 'timeout') {
         setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'failed', messages: status.messages } }));
       } else if (status.status === 'n/a') {
         // The manifest may not exist yet if the translation job was only just
@@ -92,7 +99,7 @@ export default function Manage() {
         setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'n/a' } }));
         pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
       } else {
-        // Translation finished successfully - no more need to track its status.
+        // status === 'success' - translation finished, no more need to track it.
         setUploadStatuses((prev) => {
           const next = { ...prev };
           delete next[urn];

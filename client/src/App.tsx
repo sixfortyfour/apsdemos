@@ -93,16 +93,22 @@ export default function App() {
         case 'n/a':
           setNotification('Model has not been translated.');
           break;
+        case 'pending':
+          setNotification('Model translation is starting...');
+          pollTimeoutRef.current = setTimeout(() => onModelSelected(viewer, urn), 2000);
+          break;
         case 'inprogress':
           setNotification(`Model is being translated (${status.progress})...`);
           pollTimeoutRef.current = setTimeout(() => onModelSelected(viewer, urn), 2000);
           break;
         case 'failed':
+        case 'timeout':
           setNotification(
             `Translation failed. ${status.messages.map((msg: unknown) => JSON.stringify(msg)).join(' ')}`
           );
           break;
         default:
+          // status === 'success' - the model is ready to load.
           setNotification('');
           loadModel(viewer, urn);
           break;
