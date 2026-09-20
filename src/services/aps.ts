@@ -124,6 +124,21 @@ function translateObjectEffect(urn: string, rootFilename: string | undefined) {
   );
 }
 
+// A 404 means there's no manifest to delete (e.g. translation never started) - nothing to do.
+function deleteManifestEffect(urn: string) {
+  return cachedTokenEffect.pipe(
+    Effect.flatMap((accessToken) =>
+      callAps('deleteManifest', () => modelDerivativeClient.deleteManifest(urn, { accessToken })).pipe(
+        Effect.catchIf(
+          (err) => err.status === 404,
+          () => Effect.void
+        )
+      )
+    ),
+    retryTransient
+  );
+}
+
 function getManifestEffect(urn: string) {
   return cachedTokenEffect.pipe(
     Effect.flatMap((accessToken) =>
@@ -187,6 +202,7 @@ export const listObjects = () => Effect.runPromise(listObjectsEffect());
 export const uploadObject = (objectName: string, filePath: string) =>
   Effect.runPromise(uploadObjectEffect(objectName, filePath));
 export const deleteObject = (objectName: string) => Effect.runPromise(deleteObjectEffect(objectName));
+export const deleteManifest = (urn: string) => Effect.runPromise(deleteManifestEffect(urn));
 export const translateObject = (urn: string, rootFilename: string | undefined) =>
   Effect.runPromise(translateObjectEffect(urn, rootFilename));
 export const getManifest = (urn: string) => Effect.runPromise(getManifestEffect(urn));

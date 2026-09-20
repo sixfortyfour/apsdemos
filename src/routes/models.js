@@ -1,8 +1,9 @@
 const express = require('express');
 const formidable = require('express-formidable');
-const { listObjects, uploadObject, deleteObject, translateObject, getManifest, urnify } = require('../services/aps');
+const { listObjects, uploadObject, deleteObject, deleteManifest, translateObject, getManifest, urnify } = require('../services/aps');
 const { summarizeManifest, applyWebhookStatus } = require('../services/manifestSummary');
 const { getFinished } = require('../services/webhookEvents');
+const { APS_BUCKET } = require('../config');
 
 let router = express.Router();
 
@@ -53,7 +54,11 @@ router.post('/api/models', formidable({ maxFileSize: Infinity }), async function
 
 router.delete('/api/models/:objectKey', async function (req, res, next) {
     try {
-        await deleteObject(req.params.objectKey);
+        const objectId = `urn:adsk.objects:os.object:${APS_BUCKET}/${req.params.objectKey}`;
+        await Promise.all([
+            deleteObject(req.params.objectKey),
+            deleteManifest(urnify(objectId))
+        ]);
         res.status(204).end();
     } catch (err) {
         next(err);
