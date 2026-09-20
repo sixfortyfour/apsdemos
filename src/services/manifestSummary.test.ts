@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import manifestSummaryModule from './manifestSummary.js';
 
-const { summarizeManifest } = manifestSummaryModule as unknown as {
+const { summarizeManifest, applyWebhookStatus } = manifestSummaryModule as unknown as {
   summarizeManifest: (manifest: any) => { status: string; progress?: string; messages?: any[] };
+  applyWebhookStatus: (
+    summary: { status: string; progress?: string; messages?: any[] },
+    webhookStatus: string | undefined
+  ) => { status: string; progress?: string; messages?: any[] };
 };
 
 describe('summarizeManifest', () => {
@@ -98,5 +102,31 @@ describe('summarizeManifest', () => {
       derivatives: [{ children: [{}] }],
     };
     expect(summarizeManifest(manifest).progress).toBe('20% complete');
+  });
+});
+
+describe('applyWebhookStatus', () => {
+  it('leaves the summary untouched when there is no webhook-confirmed outcome', () => {
+    const summary = { status: 'inprogress', progress: '50% complete', messages: [] };
+    expect(applyWebhookStatus(summary, undefined)).toEqual(summary);
+  });
+
+  it('overrides an unfinished-looking status with the webhook outcome', () => {
+    const summary = { status: 'inprogress', progress: '50% complete', messages: [] };
+    expect(applyWebhookStatus(summary, 'success')).toEqual({
+      status: 'success',
+      progress: 'complete',
+      messages: [],
+    });
+  });
+
+  it('overrides "pending" and "n/a" the same way', () => {
+    expect(applyWebhookStatus({ status: 'pending' }, 'success').status).toBe('success');
+    expect(applyWebhookStatus({ status: 'n/a' }, 'failed').status).toBe('failed');
+  });
+
+  it('leaves an already-final status alone even if a webhook outcome is present', () => {
+    const summary = { status: 'success', progress: 'complete', messages: [] };
+    expect(applyWebhookStatus(summary, 'success')).toEqual(summary);
   });
 });

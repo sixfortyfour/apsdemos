@@ -27,6 +27,8 @@ Copy `.env.example` to `.env` in the project root and fill in the required value
 | `APS_BUCKET` | No | OSS bucket used to store drawings. Defaults to `${APS_CLIENT_ID}-basic-app` |
 | `PORT` | No | Port the server listens on. Defaults to `8080` |
 | `SESSION_SECRET` | No | Secret used to sign session cookies. A random one is generated per process start if unset (sessions won't survive a restart) |
+| `APS_WEBHOOK_CALLBACK_BASE_URL` | No | This app's own public HTTPS base URL. If set together with `APS_WEBHOOK_SECRET`, the server registers a Model Derivative webhook on startup so translation completion is detected immediately instead of relying purely on polling |
+| `APS_WEBHOOK_SECRET` | No | Secret used to sign/verify webhook callbacks. Required if `APS_WEBHOOK_CALLBACK_BASE_URL` is set |
 
 See `src/config.ts` for how these are read and validated.
 

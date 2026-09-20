@@ -47,4 +47,18 @@ function summarizeManifest(manifest) {
     return { status: manifest.status, progress, messages };
 }
 
-module.exports = { summarizeManifest };
+// The Model Derivative webhook fires the instant a job truly finishes, which can beat a manifest
+// read reflecting that same completion. If the webhook has already reported a final outcome for
+// this urn but the manifest we just read still looks unfinished, trust the webhook instead of
+// making the caller wait out another poll for the manifest to catch up.
+function applyWebhookStatus(summary, webhookStatus) {
+    if (!webhookStatus) {
+        return summary;
+    }
+    if (summary.status === 'inprogress' || summary.status === 'pending' || summary.status === 'n/a') {
+        return { ...summary, status: webhookStatus, progress: 'complete' };
+    }
+    return summary;
+}
+
+module.exports = { summarizeManifest, applyWebhookStatus };

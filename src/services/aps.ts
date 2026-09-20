@@ -1,6 +1,7 @@
 import { AuthenticationClient, Scopes } from '@aps_sdk/authentication';
 import { OssClient, Region, PolicyKey, type ObjectDetails } from '@aps_sdk/oss';
 import { ModelDerivativeClient, View, OutputType } from '@aps_sdk/model-derivative';
+import { WebhooksClient, Systems, Events } from '@aps_sdk/webhooks';
 import { Duration, Effect, Option, Schedule, Stream } from 'effect';
 import { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_BUCKET } from '../config';
 import { ApsRequestError, statusOf, isTransientError, urnify } from './apsHelpers';
@@ -8,6 +9,11 @@ import { ApsRequestError, statusOf, isTransientError, urnify } from './apsHelper
 const authenticationClient = new AuthenticationClient();
 const ossClient = new OssClient();
 const modelDerivativeClient = new ModelDerivativeClient();
+const webhooksClient = new WebhooksClient();
+
+// Tags translation jobs so a registered webhook (see ensureWebhook) picks them up. Harmless to
+// send even when no webhook is registered - APS just ignores a workflow ID nothing subscribes to.
+const WEBHOOK_WORKFLOW_ID = 'apsdemos-model-derivative';
 
 function callAps<A>(operation: string, promise: () => Promise<A>): Effect.Effect<A, ApsRequestError> {
   return Effect.tryPromise({
@@ -107,6 +113,7 @@ function translateObjectEffect(urn: string, rootFilename: string | undefined) {
           {
             input: { urn, compressedUrn: !!rootFilename, rootFilename },
             output: { formats: [{ views: [View._2d, View._3d], type: OutputType.Svf2 }] },
+            misc: { workflow: WEBHOOK_WORKFLOW_ID },
           },
           { accessToken }
         )
@@ -131,6 +138,48 @@ function getManifestEffect(urn: string) {
     )
   );
 }
+
+// Sets (or, if one is already set, replaces) the secret token used to sign webhook callbacks.
+function ensureWebhookSecretEffect(secret: string): Effect.Effect<void, ApsRequestError> {
+  return cachedTokenEffect.pipe(
+    Effect.flatMap((accessToken) =>
+      callAps('createWebhookToken', () => webhooksClient.createToken({ token: secret }, { accessToken })).pipe(
+        Effect.catchIf(
+          (err) => err.status === 400,
+          () => callAps('putWebhookToken', () => webhooksClient.putToken({ token: secret }, { accessToken }))
+        )
+      )
+    ),
+    retryTransient,
+    Effect.asVoid
+  );
+}
+
+// Registers a webhook for our translation jobs (tagged via WEBHOOK_WORKFLOW_ID). A 409 means one
+// already exists for this callback URL/scope/event - fine, nothing to do.
+function ensureWebhookHookEffect(callbackUrl: string): Effect.Effect<void, ApsRequestError> {
+  return cachedTokenEffect.pipe(
+    Effect.flatMap((accessToken) =>
+      callAps('createModelDerivativeWebhook', () =>
+        webhooksClient.createSystemEventHook(
+          Systems.Derivative,
+          Events.ExtractionFinished,
+          { callbackUrl, scope: { workflow: WEBHOOK_WORKFLOW_ID } },
+          { accessToken }
+        )
+      ).pipe(Effect.catchIf((err) => err.status === 409, () => Effect.void))
+    ),
+    retryTransient,
+    Effect.asVoid
+  );
+}
+
+export const ensureWebhook = (secret: string, callbackBaseUrl: string) =>
+  Effect.runPromise(
+    ensureWebhookSecretEffect(secret).pipe(
+      Effect.zipRight(ensureWebhookHookEffect(`${callbackBaseUrl}/api/webhooks/model-derivative`))
+    )
+  );
 
 export const getViewerToken = () => Effect.runPromise(getViewerTokenEffect);
 export const ensureBucketExists = (bucketKey: string) => Effect.runPromise(ensureBucketExistsEffect(bucketKey));

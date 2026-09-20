@@ -1,7 +1,8 @@
 const express = require('express');
 const formidable = require('express-formidable');
 const { listObjects, uploadObject, deleteObject, translateObject, getManifest, urnify } = require('../services/aps');
-const { summarizeManifest } = require('../services/manifestSummary');
+const { summarizeManifest, applyWebhookStatus } = require('../services/manifestSummary');
+const { getFinished } = require('../services/webhookEvents');
 
 let router = express.Router();
 
@@ -25,7 +26,8 @@ router.get('/api/models/:urn/status', async function (req, res, next) {
         // This is polled every couple of seconds while translation is running - never let the
         // browser (or a proxy) serve a cached/304 response instead of the current status.
         res.set('Cache-Control', 'no-store');
-        res.json(summarizeManifest(manifest));
+        const summary = applyWebhookStatus(summarizeManifest(manifest), getFinished(req.params.urn));
+        res.json(summary);
     } catch (err) {
         next(err);
     }
