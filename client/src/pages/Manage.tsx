@@ -21,7 +21,11 @@ interface DrawingFile {
   urn: string;
   name: string;
   size?: number;
-  contentType?: string;
+}
+
+function fileExtension(name: string): string {
+  const dot = name.lastIndexOf('.');
+  return dot > 0 ? name.slice(dot + 1).toUpperCase() : '—';
 }
 
 interface UploadStatus {
@@ -285,7 +289,7 @@ export default function Manage() {
                       )}
                     </td>
                     <td className="px-4 py-2 text-muted-foreground">{formatBytes(file.size)}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{file.contentType ?? '—'}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{fileExtension(file.name)}</td>
                     <td className="px-4 py-2 text-right">
                       <Button
                         variant="destructive"

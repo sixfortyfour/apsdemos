@@ -13,8 +13,7 @@ router.get('/api/models', async function (req, res, next) {
         res.json(objects.map(o => ({
             name: o.objectKey,
             urn: urnify(o.objectId),
-            size: o.size,
-            contentType: o.contentType
+            size: o.size
         })));
     } catch (err) {
         next(err);
