@@ -73,7 +73,14 @@ export default function Manage() {
   const bestProgressRef = useRef<Record<string, ProgressReading>>({});
 
   useEffect(() => {
-    fetchFiles();
+    fetchFiles().then((list) => {
+      // A page refresh loses track of any translations that were already in flight (the
+      // in-memory uploadStatuses/subscriptions don't survive it) - resume watching whichever
+      // ones are still pending/inprogress so their status reappears instead of looking finished.
+      for (const file of list) {
+        resumeIfInProgress(file.urn);
+      }
+    });
     const unsubscribes = statusUnsubscribesRef.current;
     return () => {
       for (const unsubscribe of Object.values(unsubscribes)) {
@@ -81,6 +88,26 @@ export default function Manage() {
       }
     };
   }, []);
+
+  async function resumeIfInProgress(urn: string) {
+    try {
+      const resp = await fetch(`/api/models/${urn}/status`, { cache: 'no-store' });
+      if (!resp.ok) {
+        throw new Error(await resp.text());
+      }
+      const status: TranslationStatus = await resp.json();
+      // Only open a live watch for translations that are actually still running - doing this for
+      // 'n/a' files too would open an SSE stream that polls forever, since 'n/a' is never a
+      // terminal status.
+      if (status.status === 'pending' || status.status === 'inprogress') {
+        handleUploadStatus(urn, status);
+        trackUploadStatus(urn);
+      }
+    } catch (err) {
+      toast.error('Could not check translation status. See the console for more details.');
+      console.error(err);
+    }
+  }
 
   function trackUploadStatus(urn: string) {
     statusUnsubscribesRef.current[urn]?.();
@@ -126,12 +153,12 @@ export default function Manage() {
     }
   }
 
-  async function fetchFiles() {
+  async function fetchFiles(): Promise<DrawingFile[]> {
     try {
       const resp = await fetch('/api/models');
       if (resp.status === 401) {
         window.location.href = '/login.html';
-        return;
+        return [];
       }
       if (!resp.ok) {
         throw new Error(await resp.text());
@@ -139,9 +166,11 @@ export default function Manage() {
       const list: DrawingFile[] = await resp.json();
       list.sort((a, b) => a.name.localeCompare(b.name));
       setFiles(list);
+      return list;
     } catch (err) {
       toast.error('Could not list drawings. See the console for more details.');
       console.error(err);
+      return [];
     }
   }
 
