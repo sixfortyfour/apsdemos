@@ -27,6 +27,7 @@ app.use(requireAuth);
 app.use(express.static(path.join(__dirname, 'wwwroot')));
 app.use(require('./routes/auth.js'));
 app.use(require('./routes/models.js'));
+app.use(require('./routes/statusEvents.js'));
 app.listen(PORT, function () {
     console.log(`Server listening on port ${PORT}...`);
     if (APS_WEBHOOK_CALLBACK_BASE_URL && APS_WEBHOOK_SECRET) {

@@ -15,6 +15,7 @@ import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { initViewer, loadModel } from '@/lib/viewer';
 import { withMonotonicProgress, type ProgressReading } from '@/lib/translationProgress';
+import { subscribeToTranslationStatus, type TranslationStatus } from '@/lib/translationStatus';
 
 interface Model {
   urn: string;
@@ -24,7 +25,7 @@ interface Model {
 export default function App() {
   const previewRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
-  const pollTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const statusUnsubscribeRef = useRef<() => void>(undefined);
   const bestProgressRef = useRef<Record<string, ProgressReading>>({});
 
   const [models, setModels] = useState<Model[]>([]);
@@ -43,7 +44,7 @@ export default function App() {
     });
     return () => {
       cancelled = true;
-      if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
+      statusUnsubscribeRef.current?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -79,55 +80,51 @@ export default function App() {
     }
   }
 
-  async function onModelSelected(viewer: any, urn: string) {
-    if (pollTimeoutRef.current) {
-      clearTimeout(pollTimeoutRef.current);
-      pollTimeoutRef.current = undefined;
-    }
+  function onModelSelected(viewer: any, urn: string) {
+    statusUnsubscribeRef.current?.();
     window.location.hash = urn;
-    try {
-      const resp = await fetch(`/api/models/${urn}/status`, { cache: 'no-store' });
-      if (!resp.ok) {
-        throw new Error(await resp.text());
+    statusUnsubscribeRef.current = subscribeToTranslationStatus(
+      urn,
+      (status) => handleStatus(viewer, urn, status),
+      (err) => {
+        toast.error('Could not load model. See the console for more details.');
+        console.error(err);
       }
-      const status = await resp.json();
-      switch (status.status) {
-        case 'n/a':
-          setNotification('Model has not been translated.');
-          break;
-        case 'pending':
-          setNotification('Model translation is starting...');
-          pollTimeoutRef.current = setTimeout(() => onModelSelected(viewer, urn), 2000);
-          break;
-        case 'inprogress': {
-          const best = withMonotonicProgress(bestProgressRef.current[urn], status.progress);
-          if (best) bestProgressRef.current[urn] = best;
-          const progress = best?.progress ?? status.progress;
-          setNotification(
-            progress === 'complete'
-              ? 'Model translation is finishing up...'
-              : `Model is being translated (${progress})...`
-          );
-          pollTimeoutRef.current = setTimeout(() => onModelSelected(viewer, urn), 2000);
-          break;
-        }
-        case 'failed':
-        case 'timeout':
-          delete bestProgressRef.current[urn];
-          setNotification(
-            `Translation failed. ${status.messages.map((msg: unknown) => JSON.stringify(msg)).join(' ')}`
-          );
-          break;
-        default:
-          // status === 'success' - the model is ready to load.
-          delete bestProgressRef.current[urn];
-          setNotification('');
-          loadModel(viewer, urn);
-          break;
+    );
+  }
+
+  function handleStatus(viewer: any, urn: string, status: TranslationStatus) {
+    switch (status.status) {
+      case 'n/a':
+        setNotification('Model has not been translated.');
+        break;
+      case 'pending':
+        setNotification('Model translation is starting...');
+        break;
+      case 'inprogress': {
+        const best = withMonotonicProgress(bestProgressRef.current[urn], status.progress);
+        if (best) bestProgressRef.current[urn] = best;
+        const progress = best?.progress ?? status.progress;
+        setNotification(
+          progress === 'complete'
+            ? 'Model translation is finishing up...'
+            : `Model is being translated (${progress})...`
+        );
+        break;
       }
-    } catch (err) {
-      toast.error('Could not load model. See the console for more details.');
-      console.error(err);
+      case 'failed':
+      case 'timeout':
+        delete bestProgressRef.current[urn];
+        setNotification(
+          `Translation failed. ${(status.messages ?? []).map((msg: unknown) => JSON.stringify(msg)).join(' ')}`
+        );
+        break;
+      default:
+        // status === 'success' - the model is ready to load.
+        delete bestProgressRef.current[urn];
+        setNotification('');
+        loadModel(viewer, urn);
+        break;
     }
   }
 

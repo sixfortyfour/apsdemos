@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { withMonotonicProgress, type ProgressReading } from '@/lib/translationProgress';
+import { subscribeToTranslationStatus, type TranslationStatus } from '@/lib/translationStatus';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,60 +65,60 @@ export default function Manage() {
   const [deletingUrn, setDeletingUrn] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<DrawingFile | null>(null);
   const [uploadStatuses, setUploadStatuses] = useState<Record<string, UploadStatus>>({});
-  const pollTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const statusUnsubscribesRef = useRef<Record<string, () => void>>({});
   const bestProgressRef = useRef<Record<string, ProgressReading>>({});
 
   useEffect(() => {
     fetchFiles();
-    const timeouts = pollTimeoutsRef.current;
+    const unsubscribes = statusUnsubscribesRef.current;
     return () => {
-      for (const timeout of Object.values(timeouts)) {
-        clearTimeout(timeout);
+      for (const unsubscribe of Object.values(unsubscribes)) {
+        unsubscribe();
       }
     };
   }, []);
 
-  async function pollUploadStatus(urn: string) {
-    try {
-      const resp = await fetch(`/api/models/${urn}/status`, { cache: 'no-store' });
-      if (!resp.ok) {
-        throw new Error(await resp.text());
+  function trackUploadStatus(urn: string) {
+    statusUnsubscribesRef.current[urn]?.();
+    statusUnsubscribesRef.current[urn] = subscribeToTranslationStatus(
+      urn,
+      (status) => handleUploadStatus(urn, status),
+      (err) => {
+        toast.error('Could not check translation status. See the console for more details.');
+        console.error(err);
       }
-      const status = await resp.json();
-      delete pollTimeoutsRef.current[urn];
-      if (status.status === 'inprogress') {
-        const best = withMonotonicProgress(bestProgressRef.current[urn], status.progress);
-        if (best) bestProgressRef.current[urn] = best;
-        setUploadStatuses((prev) => ({
-          ...prev,
-          [urn]: { status: 'inprogress', progress: best?.progress ?? status.progress },
-        }));
-        pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
-      } else if (status.status === 'pending') {
-        // The job has been accepted but hasn't started translating yet -
-        // keep polling rather than treating this as a dead end.
-        setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'pending' } }));
-        pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
-      } else if (status.status === 'failed' || status.status === 'timeout') {
-        delete bestProgressRef.current[urn];
-        setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'failed', messages: status.messages } }));
-      } else if (status.status === 'n/a') {
-        // The manifest may not exist yet if the translation job was only just
-        // started - keep polling rather than treating this as a dead end.
-        setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'n/a' } }));
-        pollTimeoutsRef.current[urn] = setTimeout(() => pollUploadStatus(urn), 2000);
-      } else {
-        // status === 'success' - translation finished, no more need to track it.
-        delete bestProgressRef.current[urn];
-        setUploadStatuses((prev) => {
-          const next = { ...prev };
-          delete next[urn];
-          return next;
-        });
-      }
-    } catch (err) {
-      toast.error('Could not check translation status. See the console for more details.');
-      console.error(err);
+    );
+  }
+
+  function handleUploadStatus(urn: string, status: TranslationStatus) {
+    if (status.status === 'inprogress') {
+      const best = withMonotonicProgress(bestProgressRef.current[urn], status.progress);
+      if (best) bestProgressRef.current[urn] = best;
+      setUploadStatuses((prev) => ({
+        ...prev,
+        [urn]: { status: 'inprogress', progress: best?.progress ?? status.progress },
+      }));
+    } else if (status.status === 'pending') {
+      // The job has been accepted but hasn't started translating yet - keep watching rather
+      // than treating this as a dead end.
+      setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'pending' } }));
+    } else if (status.status === 'failed' || status.status === 'timeout') {
+      delete bestProgressRef.current[urn];
+      delete statusUnsubscribesRef.current[urn];
+      setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'failed', messages: status.messages } }));
+    } else if (status.status === 'n/a') {
+      // The manifest may not exist yet if the translation job was only just started - keep
+      // watching rather than treating this as a dead end.
+      setUploadStatuses((prev) => ({ ...prev, [urn]: { status: 'n/a' } }));
+    } else {
+      // status === 'success' - translation finished, no more need to track it.
+      delete bestProgressRef.current[urn];
+      delete statusUnsubscribesRef.current[urn];
+      setUploadStatuses((prev) => {
+        const next = { ...prev };
+        delete next[urn];
+        return next;
+      });
     }
   }
 
@@ -161,7 +162,7 @@ export default function Manage() {
       }
       const model = await resp.json();
       await fetchFiles();
-      pollUploadStatus(model.urn);
+      trackUploadStatus(model.urn);
     } catch (err) {
       toast.error(`Could not upload ${file.name}. See the console for more details.`);
       console.error(err);
